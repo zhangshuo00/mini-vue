@@ -9,8 +9,6 @@ export const PublicInstanceProxyHandlers = {
     if (key in setupState) {
       return setupState[key];
     }
-
-
     
     if (hasOwn(setupState, key)) {
       return setupState[key];

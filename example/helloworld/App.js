@@ -11,21 +11,19 @@ export const App = {
       {
         id: "root",
         class: ["red"],
-
-        // onClick() {
-        //   console.log("click");
-        // },
+        onClick() {
+          console.log("click");
+        },
         // onMousedown() {
         //   console.log("mousedown");
         // }
       },
-      "hi, " + this.msg
-      // [
-      //   h("div", {}, "hi," + this.msg),
-      //   h(Foo, {
-      //     count: 1,
-      //   }),
-      // ]
+      [
+        h("div", {}, "hi," + this.msg),
+        h(Foo, {
+          count: 1,
+        }),
+      ]
     )
   },
   setup() {
