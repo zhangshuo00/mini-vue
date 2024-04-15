@@ -1,6 +1,6 @@
 import { h, provide, inject } from "../../lib/guide-mini-vue.esm.js";
 
-const Provider = {
+export const Provider = {
   name: "Provider",
   render() {
     return h("div", {}, [h("p", {}, "Provider"), h(ProviderTwo)]);

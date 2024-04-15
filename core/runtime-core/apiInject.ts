@@ -5,7 +5,7 @@ export function provide(key, value) {
 
   if (currentInstance) {
     let { provides } = currentInstance;
-    const parentProvides = currentInstance.parent.provides;
+    const parentProvides = currentInstance.parent?.provides;
 
     if (provides === parentProvides) {
       provides = currentInstance.provides = Object.create(parentProvides);
@@ -18,7 +18,7 @@ export function inject(key, defaultValue) {
   const currentInstance: any = getCurrentInstance();
 
   if (currentInstance) {
-    const parentProvides = currentInstance.parent.provide;
+    const parentProvides = currentInstance.parent?.provides;
 
     if (key in parentProvides) {
       return parentProvides[key];
