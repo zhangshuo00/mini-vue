@@ -2,6 +2,7 @@ import {createComponentInstance, setupComponent} from "./component";
 import {ShapeFlags} from "../shared/shapeFlags";
 import {Fragment, Text} from "./vnode";
 import {createAppAPI} from "./createApp";
+import {effect} from "../reactivity/effect";
 
 export function createRenderer(options) {
   const {
@@ -11,41 +12,40 @@ export function createRenderer(options) {
   } = options;
 
   function render(vnode, container) {
-    // patch
-    patch(vnode, container, null);
+    patch(null, vnode, container, null);
   }
 
-  function patch(vnode, container, parentComponent) {
+  function patch(n1, n2, container, parentComponent) {
     // 处理组件
-    const { type, shapeFlag } = vnode;
+    const { type, shapeFlag } = n2;
 
     switch (type) {
       case Fragment:
-        processFragment(vnode, container, parentComponent);
+        processFragment(n1, n2, container, parentComponent);
         break;
       case Text:
-        processText(vnode, container);
+        processText(n1, n2, container);
         break;
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
-          processElement(vnode, container, parentComponent);
+          processElement(n1, n2, container, parentComponent);
         } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
-          processComponent(vnode, container, parentComponent)
+          processComponent(n1, n2, container, parentComponent)
         }
         break;
     }
   }
 
-  function processFragment(vnode: any, container: any, parentComponent) {
-    mountChildren(vnode, container, parentComponent);
+  function processFragment(n1, n2: any, container: any, parentComponent) {
+    mountChildren(n2, container, parentComponent);
   }
-  function processText(vnode: any, container: any) {
-    const {children} = vnode;
-    const textNode = (vnode.el = document.createTextNode(children));
+  function processText(n1, n2: any, container: any) {
+    const {children} = n2;
+    const textNode = (n2.el = document.createTextNode(children));
     container.appendChild(textNode);
   }
-  function processComponent(vnode: any, container: any, parentComponent) {
-    mountComponent(vnode, container, parentComponent)
+  function processComponent(n1, n2: any, container: any, parentComponent) {
+    mountComponent(n2, container, parentComponent)
   }
 
   function mountComponent(initialVNode: any, container: any, parentComponent) {
@@ -55,8 +55,32 @@ export function createRenderer(options) {
     setupRenderEffect(instance, initialVNode, container);
   }
 
-  function processElement(vnode: any, container: any, parentComponent) {
-    mountElement(vnode, container, parentComponent);
+  function processElement(n1, n2: any, container: any, parentComponent) {
+    if (!n1) {
+      mountElement(n2, container, parentComponent);
+    } else {
+      patchElement(n1, n2, container);
+    }
+  }
+
+  function patchElement(n1, n2, container) {
+    const oldProps = n1.props || {};
+    const newProps = n2.props || {};
+
+    const el = (n2.el = n1.el);
+
+    patchProps(el, oldProps, newProps);
+  }
+
+  function patchProps(el, oldProps, newProps) {
+    for (const key in newProps) {
+      const prevProp = oldProps[key];
+      const nextProp = newProps[key];
+
+      if (prevProp !== nextProp) {
+        hostPatchProp(el, key, prevProp, nextProp);
+      }
+    }
   }
 
   function mountElement(vnode: any, container: any, parentComponent) {
@@ -72,27 +96,43 @@ export function createRenderer(options) {
     for (const key in props) {
       const val = props[key];
 
-      patchProp(el, key, val);
+      hostPatchProp(el, key, val);
     }
     // container.append(el)
-    insert(el, container);
+    hostInsert(el, container);
   }
 
   function mountChildren(vnode, container, parentComponent) {
     vnode.children.forEach((v) => {
-      patch(v, container, parentComponent);
+      patch(null, v, container, parentComponent);
     });
   }
 
   function setupRenderEffect(instance: any, initialVNode, container) {
-    const { proxy } = instance;
-    const subTree = instance.render.call(proxy);
-    patch(subTree, container, instance)
+    effect(() => {
+      if (!instance.isMounted) {
+        const { proxy } = instance;
+        const subTree = (instance.subTree = instance.render.call(proxy));
 
-    initialVNode.el = subTree.el;
+        patch(null, subTree, container, instance)
+
+        initialVNode.el = subTree.el;
+
+        instance.isMounted = true;
+      } else {
+        const { proxy } = instance;
+        const subTree = instance.render.call(proxy);
+        const prevSubTree = instance.subTree;
+
+        instance.subTree = subTree;
+
+        patch(prevSubTree, subTree, container, instance)
+      }
+    });
   }
 
   return {
-    createApp: createAppAPI(render)
-  }
+    render,
+    createApp: createAppAPI(render),
+  };
 }
