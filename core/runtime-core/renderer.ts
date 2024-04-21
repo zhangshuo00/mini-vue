@@ -161,6 +161,11 @@ export function createRenderer(options) {
       const toBePatched = e2 - s2 + 1;
       let patched = 0;
       const keyToNewIndexMap = new Map();
+      const newIndexToOldIndexMap = new Array(toBePatched);
+
+      for (let i = 0; i < toBePatched; i++) {
+        newIndexToOldIndexMap[i] = 0;
+      }
 
       for ( let i = s2; i <= e2; i++) {
         const nextChild = c2[i];
@@ -191,8 +196,20 @@ export function createRenderer(options) {
         if (newIndex === undefined) {
           hostRemove(prevChild.el);
         } else {
+          newIndexToOldIndexMap[newIndex - s2] = i;
           patch(prevChild, c2[newIndex], container, parentComponent, null);
           patched++;
+        }
+      }
+
+      const increasingNewIndexSequence = getSequence(newIndexToOldIndexMap);
+      let j = 0;
+
+      for (let i = 0; i < toBePatched; i++) {
+        if (i !== increasingNewIndexSequence[j]) {
+
+        } else {
+          j++;
         }
       }
     }
@@ -277,4 +294,48 @@ export function createRenderer(options) {
     render,
     createApp: createAppAPI(render),
   };
+}
+
+function getSequence(arr) {
+  const p = arr.slice();
+  const result = [0];
+  let i, j, u, v, c;
+  const len = arr.length;
+  for (i = 0; i < len; i++) {
+    const arrI = arr[i];
+    if (arrI !== 0) {
+      j = result[result.length - 1];
+      if (arr[j] < arrI) {
+        p[i] = j;
+        result.push(i);
+        continue;
+      }
+      u = 0;
+      v = result.length - 1;
+      while (u < v) {
+        c = (u + v) >> 1;
+        if (arr[result[c]] < arrI) {
+          u = c + 1;
+        } else {
+          v = c;
+        }
+      }
+
+      if (arrI < arr[result[u]]) {
+        if (u > 0) {
+          p[i] = result[u - 1];
+        }
+        result[u] = i;
+      }
+    }
+  }
+
+  u = result.length;
+  v = result[u - 1];
+  while (u-- > 0) {
+    result[u] = v;
+    v = p[v];
+  }
+
+  return result;
 }
