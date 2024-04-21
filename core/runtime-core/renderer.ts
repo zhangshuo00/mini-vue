@@ -162,6 +162,8 @@ export function createRenderer(options) {
       let patched = 0;
       const keyToNewIndexMap = new Map();
       const newIndexToOldIndexMap = new Array(toBePatched);
+      let moved = false;
+      let maxNewIndexSoFar = 0;
 
       for (let i = 0; i < toBePatched; i++) {
         newIndexToOldIndexMap[i] = 0;
@@ -196,21 +198,37 @@ export function createRenderer(options) {
         if (newIndex === undefined) {
           hostRemove(prevChild.el);
         } else {
+
+          if (newIndex >= maxNewIndexSoFar) {
+            maxNewIndexSoFar = newIndex;
+          } else {
+            moved = true;
+          }
+
           newIndexToOldIndexMap[newIndex - s2] = i;
           patch(prevChild, c2[newIndex], container, parentComponent, null);
           patched++;
         }
       }
 
-      const increasingNewIndexSequence = getSequence(newIndexToOldIndexMap);
-      let j = 0;
+      const increasingNewIndexSequence = moved ? getSequence(newIndexToOldIndexMap) : [];
+      let j = increasingNewIndexSequence.length - 1;
 
-      for (let i = 0; i < toBePatched; i++) {
-        if (i !== increasingNewIndexSequence[j]) {
+      for (let i = toBePatched - 1; i >= 0; i--) {
+        const nextIndex = i + s2;
+        const nextChild = c2[nextIndex];
+        const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1].el : null;
 
-        } else {
-          j++;
+        if (newIndexToOldIndexMap[i] === 0) {
+          patch(null, nextChild, container, parentComponent, anchor);
+        } else if (moved) {
+          if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            hostInsert(nextChild.el, container, anchor);
+          } else {
+            j--;
+          }
         }
+
       }
     }
   }
@@ -262,7 +280,7 @@ export function createRenderer(options) {
   }
 
   function mountChildren(children, container, parentComponent, anchor) {
-    children.children.forEach((v) => {
+    children.forEach((v) => {
       patch(null, v, container, parentComponent, anchor);
     });
   }
