@@ -1,4 +1,4 @@
-import { h } from "../../lib/guide-mini-vue.esm.js";
+import { h, ref } from "../../lib/guide-mini-vue.esm.js";
 import Child from "./Child.js";
 
 export const App = {
@@ -9,6 +9,7 @@ export const App = {
     window.msg = msg;
 
     const changeChildProps = () => {
+      console.log("changeChildProps");
       msg.value = "456";
     };
 

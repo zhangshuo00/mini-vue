@@ -8,7 +8,7 @@ function patchProp(el, key, prevVal, nextVal) {
   const isOn = (key: string) => /^on[a-z]/.test(key);
   if (isOn(key)) {
     const event = key.slice(2).tolowercase();
-    el.addeventlistener(event, nextVal);
+    el.addEventListener(event, nextVal);
   } else {
     if (nextVal === undefined || nextVal === null) {
       el.removeAttribute(key);
